@@ -1,0 +1,275 @@
+@model List<Biblioteca.Models.Livro>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Online</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background: linear-gradient(135deg, #3a0b5e, #5c1a8a, #8b3ed9);
+            color: white;
+            min-height: 100vh;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.45);
+            padding: 50px 20px 40px;
+            text-align: center;
+        }
+
+        h1 { font-size: 3.2rem; }
+
+        .subtitle {
+            font-size: 1.4rem;
+            margin-top: 12px;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .search-bar {
+            width: 100%; max-width: 650px; margin: 0 auto 60px; padding: 18px 30px;
+            border: none; border-radius: 50px; font-size: 1.2rem;
+            background: rgba(255,255,255,0.95); color: #222;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .livros-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 30px;
+        }
+
+        .livro {
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .livro:hover {
+            transform: translateY(-15px);
+            box-shadow: 0 25px 40px rgba(0,0,0,0.5);
+        }
+
+        .capa {
+            height: 300px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .info {
+            padding: 22px 18px;
+            text-align: center;
+        }
+
+        .titulo { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
+        .autor { font-size: 1.05rem; opacity: 0.85; }
+
+        /* Modal com scroll */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #2a0a4a;
+            max-width: 1000px;
+            margin: 40px auto;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.7);
+            min-height: 80vh;
+        }
+
+        .close {
+            float: right;
+            font-size: 3rem;
+            cursor: pointer;
+            color: #ddd;
+            line-height: 1;
+        }
+
+        .book-detail {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .book-cover img {
+            width: 100%;
+            max-width: 380px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        .book-info {
+            flex: 2;
+            min-width: 320px;
+        }
+
+        .book-info h2 {
+            font-size: 2.6rem;
+            margin-bottom: 15px;
+        }
+
+        .book-info p {
+            margin: 12px 0;
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+
+        .label {
+            color: #d4a5ff;
+            font-weight: bold;
+        }
+
+        .autor-link {
+            color: #d4a5ff;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .autor-link:hover {
+            color: #c084fc;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Biblioteca Online</h1>
+        <p class="subtitle">Descubra e organize seus livros</p>
+    </header>
+
+    <div class="container">
+        <input type="text" class="search-bar" id="busca" 
+               placeholder="Buscar por título ou autor..." 
+               onkeyup="filtrarLivros()">
+
+        <div class="livros-grid" id="grid"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModal()">×</span>
+            <div id="modalContent" class="book-detail"></div>
+        </div>
+    </div>
+
+    <script>
+        const livros = [
+            { 
+                titulo: "O Inferno", 
+                autor: "Dante Alighieri", 
+                ano: "1320", 
+                genero: "Poesia Épica", 
+                resumo: "A primeira parte da Divina Comédia, onde Dante desce aos nove círculos do Inferno guiado por Virgílio, encontrando castigos proporcionais aos pecados cometidos.",
+                capa: "/img/inferno.jpg",
+                autorInfo: "Dante Alighieri (1265–1321) foi um poeta, escritor e político italiano. É considerado o maior poeta da literatura italiana e uma das maiores figuras da literatura mundial."
+            },
+            { 
+                titulo: "Dom Casmurro", 
+                autor: "Machado de Assis", 
+                ano: "1899", 
+                genero: "Romance Realista", 
+                resumo: "O narrador, Bento Santiago, já velho e solitário (apelidado de Dom Casmurro), decide escrever suas memórias para unir as duas pontas da vida. Ele relembra sua paixão por Capitu.",
+                capa: "/img/domcasmurro.jpg",
+                autorInfo: "Joaquim Maria Machado de Assis (1839–1908) foi o maior escritor brasileiro de todos os tempos. Fundador da Academia Brasileira de Letras, é conhecido por seu estilo irônico e profundo."
+            },
+            { 
+                titulo: "As 48 Leis do Poder", 
+                autor: "Robert Greene", 
+                ano: "1998", 
+                genero: "Não Ficção", 
+                resumo: "Um guia clássico sobre poder, estratégia e influência humana baseado em histórias de grandes figuras históricas.",
+                capa: "/img/48leis.jpg",
+                autorInfo: "Robert Greene é um escritor americano conhecido por seus livros sobre estratégia, poder e sedução. Suas obras já venderam milhões de cópias no mundo todo."
+            },
+            { 
+                titulo: "A Empregada", 
+                autor: "Freida McFadden", 
+                ano: "2023", 
+                genero: "Suspense", 
+                resumo: "Uma jovem empregada doméstica aceita trabalhar em uma mansão luxuosa. O que começa como um emprego comum rapidamente se transforma em um pesadelo cheio de segredos e perigo.",
+                capa: "/img/empregada.jpg",
+                autorInfo: "Freida McFadden é uma autora americana de thrillers psicológicos. Seus livros costumam ficar no topo das listas de mais vendidos."
+            }
+        ];
+
+        function mostrarLivros(lista) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            lista.forEach(livro => {
+                const div = document.createElement('div');
+                div.className = 'livro';
+                div.innerHTML = `
+                    <div class="capa" style="background-image: url('${livro.capa}');"></div>
+                    <div class="info">
+                        <div class="titulo">${livro.titulo}</div>
+                        <div class="autor">${livro.autor}</div>
+                    </div>
+                `;
+                div.onclick = () => abrirModal(livro);
+                grid.appendChild(div);
+            });
+        }
+
+        function abrirModal(livro) {
+            const content = document.getElementById('modalContent');
+            content.innerHTML = `
+                <div class="book-cover">
+                    <img src="${livro.capa}" alt="${livro.titulo}">
+                </div>
+                <div class="book-info">
+                    <h2>${livro.titulo}</h2>
+                    <p><span class="label">Autor:</span> <span class="autor-link" onclick="mostrarAutor('${livro.autor}', '${livro.autorInfo.replace(/'/g, "\\'")}')">${livro.autor}</span></p>
+                    <p><span class="label">Ano de Publicação:</span> ${livro.ano}</p>
+                    <p><span class="label">Gênero:</span> ${livro.genero}</p>
+                    <hr style="border-color: #6b1e9e; margin: 30px 0 20px;">
+                    <h3>Resumo</h3>
+                    <p>${livro.resumo}</p>
+                </div>
+            `;
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        function mostrarAutor(nome, info) {
+            fecharModal();
+            alert(`Sobre ${nome}:\n\n${info}`);
+            // Aqui você pode criar uma página separada no futuro
+        }
+
+        function fecharModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function filtrarLivros() {
+            const termo = document.getElementById('busca').value.toLowerCase().trim();
+            const filtrados = livros.filter(l => 
+                l.titulo.toLowerCase().includes(termo) || 
+                l.autor.toLowerCase().includes(termo)
+            );
+            mostrarLivros(filtrados);
+        }
+
+        window.onload = () => mostrarLivros(livros);
+    </script>
+</body>
+</html>
